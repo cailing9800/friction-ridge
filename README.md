@@ -8,9 +8,8 @@ What's Friction Ridge?
                 ||----w |
                 ||     ||
   
-	It's a simple Python script empowered by python-libnmap that uses Nmap XML outputs to
-  try remotely detect the Operational System based on a custom score system techniques
-  that goes beyond Nmap fingerprint engine.
+	It's a simple Python script empowered by python-libnmap, it uses Nmap XML outputs and try to remotely detect the Operational System based on a custom score system techniques that goes beyond Nmap fingerprint engine.
+
 
 
 Installing:
