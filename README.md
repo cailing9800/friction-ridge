@@ -7,14 +7,14 @@ What's Friction Ridge?
             (__)\       )\/\
                 ||----W |
                 ||     ||
-  
-  It's a simple Python script...
 
-	* Empowered by python-libnmap
+  It's a simple Python script...
+  * Empowered by python-libnmap
   * Uses Nmap XML outputs
   * Remotely detect the Operational System based on a custom score system techniques
   * Try to goes beyond Nmap fingerprint engine
 
+  
 Installing:
 ===========
 
