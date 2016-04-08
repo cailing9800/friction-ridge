@@ -44,10 +44,10 @@ Example:
 	tbd.
 
 	* tbd:
-
+  
 
 Author:
 =======
 
-  Ulisses Castro | uss.thebug<@>gmail.com
+  Ulisses Castro | uss.thebug[@]gmail.com
 
