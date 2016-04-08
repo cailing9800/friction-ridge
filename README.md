@@ -1,4 +1,3 @@
-
   _____     _      _   _               ____  _     _            
  |  ___| __(_) ___| |_(_) ___  _ __   |  _ \(_) __| | __ _  ___ 
  | |_ | '__| |/ __| __| |/ _ \| '_ \  | |_) | |/ _` |/ _` |/ _ \
@@ -12,7 +11,9 @@ Nmap XML outputs + Fingerprint Techniques = Guess system that show the most prob
 What's Friction Ridge?
 ===============
 
-	It's a simple Python script empowered by python-libnmap that uses Nmap XML output to try remotely detect the Operational System based on a custom score system techniques that goes beyond Nmap fingerprint engine.
+	It's a simple Python script empowered by python-libnmap that uses Nmap XML output to try
+  remotely detect the Operational System based on a custom score system techniques
+  that goes beyond Nmap fingerprint engine.
 
 
 Installing:
