@@ -273,5 +273,7 @@ with open("recon.csv", 'w') as csvwrite:
 
         # write down to the final report file
         writer.writerow({'IP Address': ip_address, 'Port/Protocol': open_ports, 'Domains': hostnames, 'Operating System': os, 'OS Version': os_version, 'Notes': notes})
-        print("%s,%s,%s,%s,%s,%s" % (ip_address, open_ports, hostnames, os, os_version, notes))
+        #print("%s,%s,%s,%s,%s,%s" % (ip_address, open_ports, hostnames, os, os_version, notes))
 
+print "Done."
+sys.exit(0)
