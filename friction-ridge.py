@@ -199,11 +199,8 @@ def nmap_combine(nmap_report, report):
     # receive NmapParser.parse_fromfile object and transcript it to dict
     # including os_name, os_version, open_ports
     for h in nmap_report.hosts:
-
         # finger only hosts with detected open ports
         if h.get_open_ports():
-            print "[*] Checking %s ..." % h.address
-
             # check if report has previously info about the current host
             if not report.has_key(h.address):
                 report[h.address] = {'Port/Protocol': [], 'Domains': [], 'Operating System': {}, 'OS Version': "", 'Notes': ""}
@@ -232,39 +229,49 @@ def search_xml_recursively(directory):
     return unique_list(full_path_files)
 
 
-report = {}
-
+# avoiding directory string problems
 directory = sys.argv[1]
 if directory.endswith('/'):
     directory = directory[:-1]
 
+# find all xml files recursively
 nmap_xml_reports = search_xml_recursively(directory)
 
-print nmap_xml_reports
+# results = cumulative dictionary
+results = {}
 
-for xml_report in nmap_xml_reports:
-    try:
-        nmap_report = NmapParser.parse_fromfile(xml_report)
-    except Exception, e:
-        print("[!] Can't load... %s" % str(xml_report))
-        pass
-
-report = nmap_combine(nmap_report, report)
-
+# open final report file
 with open("recon.csv", 'w') as csvwrite:
     # set field names
     fieldnames = ['IP Address', 'Port/Protocol', 'Domains', 'Operating System', 'OS Version', 'Notes']
     writer = csv.DictWriter(csvwrite, fieldnames=fieldnames, dialect=csv.excel, quoting=csv.QUOTE_ALL)
+    
     # write CSV header
     writer.writeheader()
-    for ip_address in report:
-        open_ports = check_ports(report[ip_address]['Port/Protocol'])
-        print "oprn_ports: %s" % open_ports
-        hostnames = list_to_str(report[ip_address]['Domains'])
-        notes = report[ip_address]['Notes']
-        os, os_version = fingerprint_decision(report[ip_address]['Operating System'], report[ip_address]['Port/Protocol'])
-        # csv write
-        if open_ports and os:
-            writer.writerow({'IP Address': ip_address, 'Port/Protocol': open_ports, 'Domains': hostnames, 'Operating System': os, 'OS Version': os_version, 'Notes': notes})
-            print("%s,%s,%s,%s,%s,%s" % (ip_address, open_ports, hostnames, os, os_version, notes))
+
+    # iterate through xml(s)
+    for xml_report in nmap_xml_reports:
+        try:
+            # trying to load xml file
+            nmap_report = NmapParser.parse_fromfile(xml_report)
+            print "[%sOK%s] %s, %s host(s) loaded." % (b.OKGREEN, b.ENDC, xml_report, len(nmap_report.hosts))
+        except Exception, e:
+            print "[%sFAIL%s] %s invalid format." % (b.FAIL, b.ENDC, xml_report)
+            # keep looking for others xml
+            continue
+
+        # start a cumulative dictionary
+        results = nmap_combine(nmap_report, results)
+        #print "results: %s" % len(results)
+
+    for ip_address in results:
+        # colecting info for each field
+        open_ports = check_ports(results[ip_address]['Port/Protocol'])
+        hostnames = list_to_str(results[ip_address]['Domains'])
+        notes = results[ip_address]['Notes']
+        os, os_version = fingerprint_decision(results[ip_address]['Operating System'], results[ip_address]['Port/Protocol'])
+
+        # write down to the final report file
+        writer.writerow({'IP Address': ip_address, 'Port/Protocol': open_ports, 'Domains': hostnames, 'Operating System': os, 'OS Version': os_version, 'Notes': notes})
+        print("%s,%s,%s,%s,%s,%s" % (ip_address, open_ports, hostnames, os, os_version, notes))
 
