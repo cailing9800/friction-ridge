@@ -200,7 +200,7 @@ if __name__ == '__main__':
         csv_filename = options.output
     
     if options.debug:
-        root.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
 
     # results = cumulative dictionary
     results = {}
@@ -242,5 +242,5 @@ if __name__ == '__main__':
             writer.writerow({'IP Address': ip_address, 'Port/Protocol': open_ports, 'Domains': hostnames, 'Operating System': os, 'OS Version': os_version, 'Notes': notes})
             logger.debug("%s,%s,%s,%s,%s,%s" % (ip_address, open_ports, hostnames, os, os_version, notes))
 
-    logger.info("%s done" % csv_filename)
+    logger.info("Done" % csv_filename)
     sys.exit(0)
