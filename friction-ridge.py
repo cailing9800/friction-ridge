@@ -229,7 +229,7 @@ if __name__ == '__main__':
             results = nmap_combine(nmap_report, results)
             #print "results: %s" % len(results)
 
-        logger.info("Wrinting down results into %s" % csv_filename)
+        logger.info("Wraping up results")
         for ip_address in results:
             # colecting info for each field
             open_ports = check_ports(results[ip_address]['Port/Protocol'])
@@ -242,5 +242,5 @@ if __name__ == '__main__':
             writer.writerow({'IP Address': ip_address, 'Port/Protocol': open_ports, 'Domains': hostnames, 'Operating System': os, 'OS Version': os_version, 'Notes': notes})
             logger.debug("%s,%s,%s,%s,%s,%s" % (ip_address, open_ports, hostnames, os, os_version, notes))
 
-    logger.info("Done" % csv_filename)
+    logger.info("Done: %s" % csv_filename)
     sys.exit(0)
