@@ -25,25 +25,15 @@ Installing:
 Usage:
 ======
 
-	usage: friction-ridge.py [-h] [-f FILE] [-d DIRECTORY] [-o OUTPUT] [-v VERBOSE]
-
-	Nmap XML outputs + Fingerprint Techniques = Guess system that show the most probable remote Operational System.
+	usage: friction-ridge.py [-h] (-f FILE | -d DIR) [--output OUTPUT] [--debug]
 
 	optional arguments:
-  	-h, --help    show this help message and exit
-  	-d DIRECTORY  Recursively look for nmap XML files inside a directory.
-  	-f FILE       Nmap XML output file.
-  	-o OUTPUT     consolidated CSV output file.
-  	-v, --verbose more detailed mode.
+	  -h, --help            show this help message and exit
+	  -f FILE, --file FILE  load a nmap XML file
+	  -d DIR, --dir DIR     directory to recursively search for nmap XML files
+	  --output OUTPUT       output fingerprinted CSV file (default: recon.csv)
+	  --debug               debug mode
 
-
-Example:
-========
-	
-	tbd.
-
-	* tbd:
-  
 
 Author:
 =======

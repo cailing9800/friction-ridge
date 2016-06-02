@@ -7,19 +7,12 @@ import pycurl
 import OpenSSL
 import socket
 import ssl
+import argparse
+import logging
 
 from libnmap.parser import NmapParser
 
-# colors
-class b:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+from lib.log import logger
 
 
 # transform list into string
@@ -55,6 +48,7 @@ def fingerprint_decision(cpematches, services):
     most_prob_version = ""
 
     if cpematches:
+        #print cpematches
         # get the highest accuracy from SO cpe dict
         cpe = max(cpematches, key=cpematches.get)
 
@@ -90,34 +84,11 @@ def cert_hostname(ip_address, port):
                     if resolved_ip_address == ip_address:
                         return hostname.lower()
     except Exception, e:
-        print("[!] %s:%s\n[!] Error retrieving hostname via certificate.\nDetails:\n%s" % (ip_address, port, e))
+        err, err_msg = e
+        logger.warn("Unable to extract hostname from certificate for %s on port %s (%s)" % (ip_address, port, err_msg))
         pass
 
     return
-
-
-def _check_hostname_from_cert(curl_error_msg):
-    # take curl error msg code 51 and verify IP against name
-    # ex: "SSL: certificate subject name 'qa-clientlinkconnector.blabla.com' does not match target host name '50.200.62.206'"
-    hostname = ""
-
-    # hostname from error
-    err_hostname = curl_error_msg.split("'")[1]
-    # ip address from error
-    err_address = curl_error_msg.split("'")[3]
-    
-    try:
-        # ignore hostname with wildcards
-        if "*" not in err_hostname:
-            # verify if cert hostname matches the candidate IP address
-            resolved_ip_address = socket.gethostbyname(err_hostname)
-            if resolved_ip_address == address:
-                hostname = err_hostname.lower()
-    except Exception, e:
-        pass
-
-    return hostname
-
 
 def check_hostname(nmap_host_object, hostnames):
     # add nmap resolved hostname to hostnames list if it exist
@@ -132,16 +103,6 @@ def check_hostname(nmap_host_object, hostnames):
     except Exception, e:
         pass
 
-    # add HTTP SSL enabled certificate hostnames
-#    curl = pycurl.Curl()
-#    curl.setopt(pycurl.SSL_VERIFYPEER, 0)
-#    curl.setopt(pycurl.TIMEOUT, 10L)
-#    curl.setopt(pycurl.OPT_CERTINFO, 1)
-
-    # suppress curl output
-#    devnull = open('/dev/null', 'w')
-#    curl.setopt(pycurl.WRITEFUNCTION, devnull.write)
-
     # run through all HTTP SSL enabled ports
     for service in nmap_host_object.services:
         # check hostname inside certificates
@@ -149,24 +110,6 @@ def check_hostname(nmap_host_object, hostnames):
             hostname = cert_hostname(nmap_host_object.address, service.port)
             if hostname:
                 hostnames.append(hostname)
-#            url = "https://%s:%s" % (nmap_host_object.address, service.port)
-#            curl.setopt(pycurl.URL, url)
-#            try:
-                # run curl
- #               curl.perform()
- #               curl.close()
-                #for certinfo in c.getinfo(pycurl.INFO_CERTINFO):
-                #    for info in certinfo:
-                #        if "Subject" in str(info):
-                #            print info
-#            except Exception, error:
-                # if exception occours, we can grab the hostname from it
-#                code, error_msg = error
-#                if code == 51 and "does not match target host name" in error_msg:
-#                    hostname = _check_hostname_from_cert(error_msg)
-#                    if hostname:
-#                        hostnames.append(hostname)
-#                pass
 
     return unique_list(hostnames)
 
@@ -229,51 +172,75 @@ def search_xml_recursively(directory):
     return unique_list(full_path_files)
 
 
-# avoiding directory string problems
-directory = sys.argv[1]
-if directory.endswith('/'):
-    directory = directory[:-1]
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-f', '--file', help='load a nmap XML file')
+    group.add_argument('-d', '--dir', help='directory to recursively search for nmap XML files')
+    parser.add_argument('--output', default="recon.csv", help='output fingerprinted CSV file (default: recon.csv)')
+    parser.add_argument('--debug', action='store_true', help='debug mode')
 
-# find all xml files recursively
-nmap_xml_reports = search_xml_recursively(directory)
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
 
-# results = cumulative dictionary
-results = {}
+    options = parser.parse_args()
 
-# open final report file
-with open("recon.csv", 'w') as csvwrite:
-    # set field names
-    fieldnames = ['IP Address', 'Port/Protocol', 'Domains', 'Operating System', 'OS Version', 'Notes']
-    writer = csv.DictWriter(csvwrite, fieldnames=fieldnames, dialect=csv.excel, quoting=csv.QUOTE_ALL)
+    if options.dir:
+        directory = options.dir
+        if directory.endswith('/'):
+            directory = directory[:-1]
+        # find all xml files recursively
+        nmap_xml_reports = search_xml_recursively(directory)
+    else:
+        # proceed with single file
+        nmap_xml_reports = [options.file]        
+
+    if options.output:
+        csv_filename = options.output
     
-    # write CSV header
-    writer.writeheader()
+    if options.debug:
+        root.setLevel(logging.DEBUG)
 
-    # iterate through xml(s)
-    for xml_report in nmap_xml_reports:
-        try:
-            # trying to load xml file
-            nmap_report = NmapParser.parse_fromfile(xml_report)
-            print "[%sOK%s] %s, %s host(s) loaded." % (b.OKGREEN, b.ENDC, xml_report, len(nmap_report.hosts))
-        except Exception, e:
-            print "[%sFAIL%s] %s invalid format." % (b.FAIL, b.ENDC, xml_report)
-            # keep looking for others xml
-            continue
+    # results = cumulative dictionary
+    results = {}
 
-        # start a cumulative dictionary
-        results = nmap_combine(nmap_report, results)
-        #print "results: %s" % len(results)
+    # open final report file
+    with open(csv_filename, 'w') as csvwrite:
+        # set field names
+        fieldnames = ['IP Address', 'Port/Protocol', 'Domains', 'Operating System', 'OS Version', 'Notes']
+        writer = csv.DictWriter(csvwrite, fieldnames=fieldnames, dialect=csv.excel, quoting=csv.QUOTE_ALL)
+        
+        # write CSV header
+        writer.writeheader()
 
-    for ip_address in results:
-        # colecting info for each field
-        open_ports = check_ports(results[ip_address]['Port/Protocol'])
-        hostnames = list_to_str(results[ip_address]['Domains'])
-        notes = results[ip_address]['Notes']
-        os, os_version = fingerprint_decision(results[ip_address]['Operating System'], results[ip_address]['Port/Protocol'])
+        # iterate through xml(s)
+        for xml_report in nmap_xml_reports:
+            try:
+                # trying to load xml file
+                nmap_report = NmapParser.parse_fromfile(xml_report)
+                logger.info("%s host(s) loaded from %s" % (len(nmap_report.hosts), xml_report))
+            except Exception, e:
+                logger.warn("XML file %s corrupted or format not recognized" % xml_report)
+                # keep looking for others xml
+                continue
 
-        # write down to the final report file
-        writer.writerow({'IP Address': ip_address, 'Port/Protocol': open_ports, 'Domains': hostnames, 'Operating System': os, 'OS Version': os_version, 'Notes': notes})
-        #print("%s,%s,%s,%s,%s,%s" % (ip_address, open_ports, hostnames, os, os_version, notes))
+            # start a cumulative dictionary
+            results = nmap_combine(nmap_report, results)
+            #print "results: %s" % len(results)
 
-print "Done."
-sys.exit(0)
+        logger.info("Wrinting down results into %s" % csv_filename)
+        for ip_address in results:
+            # colecting info for each field
+            open_ports = check_ports(results[ip_address]['Port/Protocol'])
+            hostnames = list_to_str(results[ip_address]['Domains'])
+            notes = results[ip_address]['Notes']
+            os, os_version = fingerprint_decision(results[ip_address]['Operating System'], results[ip_address]['Port/Protocol'])
+            #print ip_address, results[ip_address]['Operating System']
+
+            # write down to the final report file
+            writer.writerow({'IP Address': ip_address, 'Port/Protocol': open_ports, 'Domains': hostnames, 'Operating System': os, 'OS Version': os_version, 'Notes': notes})
+            logger.debug("%s,%s,%s,%s,%s,%s" % (ip_address, open_ports, hostnames, os, os_version, notes))
+
+    logger.info("%s done" % csv_filename)
+    sys.exit(0)
