@@ -35,6 +35,14 @@ Usage:
 	  --debug               debug mode
 
 
+TODO:
+=======
+
+    * Code clean up
+    * Better info, error and debug messages
+    * Improve detection algorithm
+
+
 Author:
 =======
 
